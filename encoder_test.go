@@ -30,8 +30,7 @@ func ExampleEncoder() {
 
 	var b strings.Builder
 
-	enc := delimited.NewEncoder(&b)
-	enc.Delimiter = "|"
+	enc := delimited.NewEncoder(&b, delimited.EncoderWithDelimiter("|"))
 
 	enc.Encode(val)
 

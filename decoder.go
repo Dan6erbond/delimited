@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"io"
 	"reflect"
-	"strconv"
 	"strings"
 )
 
 type Decoder struct {
-	Delimiter string
+	delimiter string
 	reader    io.Reader
 }
 
@@ -24,23 +23,13 @@ func (d *Decoder) Decode(v any) error {
 		return err
 	}
 
-	parts := strings.Split(string(bytes), d.Delimiter)
+	parts := strings.Split(string(bytes), d.delimiter)
+
+	fields := getFields(t)
 
 	for i, p := range parts {
-		if i < t.NumField() {
-			field := t.Field(i)
-
-			if field.Tag.Get("index") == "" || field.Tag.Get("index") == strconv.Itoa(i) {
-				unmarshalField(p, vo.Field(i))
-			}
-		}
-
-		for fi := range vo.NumField() {
-			field := t.Field(fi)
-
-			if field.Tag.Get("index") == strconv.Itoa(i) {
-				unmarshalField(p, vo.Field(fi))
-			}
+		if i < len(fields) {
+			unmarshalField(p, vo.Field(fields[i]))
 		}
 	}
 
@@ -59,10 +48,24 @@ func unmarshalField(p string, field reflect.Value) {
 	}
 }
 
-func NewDecoder(reader io.Reader) *Decoder {
-	return &Decoder{",", reader}
+type DecoderOpts func(e *Decoder)
+
+func DecoderWithDelimiter(delimiter string) DecoderOpts {
+	return func(e *Decoder) {
+		e.delimiter = delimiter
+	}
+}
+
+func NewDecoder(reader io.Reader, opts ...DecoderOpts) *Decoder {
+	d := &Decoder{reader: reader}
+
+	for _, opt := range opts {
+		opt(d)
+	}
+
+	return d
 }
 
 func Unmarshal(data []byte, v any) error {
-	return NewDecoder(bytes.NewReader(data)).Decode(v)
+	return NewDecoder(bytes.NewReader(data), DecoderWithDelimiter(",")).Decode(v)
 }

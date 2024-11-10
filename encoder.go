@@ -1,54 +1,46 @@
 package delimited
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"reflect"
-	"strconv"
 	"strings"
 )
 
 type Encoder struct {
-	Delimiter string
+	delimiter string
 	writer    io.Writer
 }
 
 func (e *Encoder) Encode(v any) error {
-	var parts []string
-
 	vo := reflect.Indirect(reflect.ValueOf(v))
 	t := vo.Type()
 
-	var fields []int
-	index := 0
+	fields := getFields(t)
 
-	for i := range vo.NumField() {
-		for j := range t.NumField() {
-			if t.Field(j).Tag.Get("index") == strconv.Itoa(i) {
-				fields = append(fields, j)
-				index++
-			}
-		}
-
-		if t.Field(i).Tag.Get("delimited") == "ignore" {
-			continue
-		}
-
-		fields = append(fields, i)
-		index++
-	}
-
-	for _, j := range fields {
+	for i, j := range fields {
 		p, err := marshalField(vo.Field(j))
 
 		if err != nil {
 			return err
 		}
 
-		parts = append(parts, p)
+		_, err = e.writer.Write([]byte(p))
+
+		if err != nil {
+			return err
+		}
+
+		if i != len(fields)-1 {
+			_, err = e.writer.Write([]byte(e.delimiter))
+
+			if err != nil {
+				return err
+			}
+		}
 	}
 
-	e.writer.Write([]byte(strings.Join(parts, e.Delimiter)))
 	return nil
 }
 
@@ -63,18 +55,32 @@ func marshalField(field reflect.Value) (string, error) {
 	}
 }
 
-func NewEncoder(writer io.Writer) *Encoder {
-	return &Encoder{",", writer}
+type EncoderOpts func(e *Encoder)
+
+func EncoderWithDelimiter(delimiter string) EncoderOpts {
+	return func(e *Encoder) {
+		e.delimiter = delimiter
+	}
+}
+
+func NewEncoder(writer io.Writer, opts ...EncoderOpts) *Encoder {
+	e := &Encoder{writer: writer}
+
+	for _, opt := range opts {
+		opt(e)
+	}
+
+	return e
 }
 
 func Marshal(v any) ([]byte, error) {
-	var b strings.Builder
+	var b bytes.Buffer
 
-	e := NewEncoder(&b).Encode(v)
+	e := NewEncoder(&b, EncoderWithDelimiter(",")).Encode(v)
 
 	if e != nil {
 		return nil, e
 	}
 
-	return []byte(b.String()), nil
+	return b.Bytes(), nil
 }
