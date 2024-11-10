@@ -13,6 +13,9 @@ type Decoder struct {
 	reader    io.Reader
 }
 
+// Decode reads values from a delimited string and parses them into the struct fields.
+// For non-string struct fields the `json.Unmarshal()` function is used to parse values.
+// It will skip fields with the `delimited:"ignore"` tag and use the `index` tag to determine the index of the field to read.
 func (d *Decoder) Decode(v any) error {
 	vo := reflect.Indirect(reflect.ValueOf(v))
 	t := vo.Type()
@@ -29,7 +32,9 @@ func (d *Decoder) Decode(v any) error {
 
 	for i, p := range parts {
 		if i < len(fields) {
-			unmarshalField(p, vo.Field(fields[i]))
+			if err := unmarshalField(p, vo.Field(fields[i])); err != nil {
+				return err
+			}
 		}
 	}
 

@@ -13,6 +13,9 @@ type Encoder struct {
 	writer    io.Writer
 }
 
+// Encode marshals the given struct's fields using the delimiter as a separator.
+// For non-string types the `json.Marshal()` method is used to encode values.
+// It will ignore any fields with the `delimited:"ignore"` tag and use the `index` tag to determine the field's position in the string if given.
 func (e *Encoder) Encode(v any) error {
 	vo := reflect.Indirect(reflect.ValueOf(v))
 	t := vo.Type()
@@ -57,6 +60,7 @@ func marshalField(field reflect.Value) (string, error) {
 
 type EncoderOpts func(e *Encoder)
 
+// EncoderwithDelimiter sets a custom delimiter for the encoder to use when encoding.
 func EncoderWithDelimiter(delimiter string) EncoderOpts {
 	return func(e *Encoder) {
 		e.delimiter = delimiter
@@ -73,6 +77,7 @@ func NewEncoder(writer io.Writer, opts ...EncoderOpts) *Encoder {
 	return e
 }
 
+// Marshal provides a convenience layer to encode struct fields to a string using "," as the delimiter.
 func Marshal(v any) ([]byte, error) {
 	var b bytes.Buffer
 
