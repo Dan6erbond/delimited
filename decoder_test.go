@@ -91,7 +91,11 @@ func TestUnmarshalIndex(t *testing.T) {
 		t.Errorf("expected %d got %d", 1, val.A)
 	}
 
-	if val.B == nil || *val.B != 0 {
+	if val.B == nil {
+		t.Errorf("expected %d got <nil>", 0)
+	}
+
+	if *val.B != 0 {
 		t.Errorf("expected %d got %d", 0, val.B)
 	}
 
@@ -99,7 +103,11 @@ func TestUnmarshalIndex(t *testing.T) {
 		t.Errorf("expected %s got %s", "4", val.C)
 	}
 
-	if val.D == nil || *val.D != "3" {
+	if val.D == nil {
+		t.Errorf("expected %s got <nil>", "3")
+	}
+
+	if *val.D != "3" {
 		t.Errorf("expected %s got %s", "3", *val.D)
 	}
 }
@@ -126,7 +134,69 @@ func TestUnmarshalIgnore(t *testing.T) {
 		t.Errorf("expected %s got %s", "3", val.C)
 	}
 
-	if val.D == nil || *val.D != "4" {
+	if val.D == nil {
+		t.Errorf("expected %s got <nil>", "4")
+	}
+
+	if *val.D != "4" {
+		t.Errorf("expected %s got %s", "4", *val.D)
+	}
+}
+
+func TestUnmarshalUnderflow(t *testing.T) {
+	var val struct {
+		A int
+		B *int `delimited:"ignore"`
+		C string
+		D *string
+	}
+
+	delimited.Unmarshal([]byte(`1,3`), &val)
+
+	if val.A != 1 {
+		t.Errorf("expected %d got %d", 1, val.A)
+	}
+
+	if val.B != nil {
+		t.Errorf("expected <nil> got %d", val.B)
+	}
+
+	if val.C != "3" {
+		t.Errorf("expected %s got %s", "3", val.C)
+	}
+
+	if val.D != nil {
+		t.Errorf("expected <nil> got %s", *val.D)
+	}
+}
+
+func TestUnmarshalOverflow(t *testing.T) {
+	var val struct {
+		A int
+		B *int `delimited:"ignore"`
+		C string
+		D *string
+	}
+
+	delimited.Unmarshal([]byte(`1,3,4,4`), &val)
+
+	if val.A != 1 {
+		t.Errorf("expected %d got %d", 1, val.A)
+	}
+
+	if val.B != nil {
+		t.Errorf("expected <nil> got %d", val.B)
+	}
+
+	if val.C != "3" {
+		t.Errorf("expected %s got %s", "3", val.C)
+	}
+
+	if val.D == nil {
+		t.Errorf("expected %s got <nil>", "4")
+	}
+
+	if *val.D != "4" {
 		t.Errorf("expected %s got %s", "4", *val.D)
 	}
 }
