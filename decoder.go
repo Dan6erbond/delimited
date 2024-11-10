@@ -36,16 +36,24 @@ func (d *Decoder) Decode(v any) error {
 	return nil
 }
 
-func unmarshalField(p string, field reflect.Value) {
+func unmarshalField(p string, field reflect.Value) error {
 	if field.Type().Kind() == reflect.String {
 		field.Set(reflect.ValueOf(p))
 	} else if field.Type() == reflect.PointerTo(reflect.TypeFor[string]()) {
 		field.Set(reflect.ValueOf(&p))
 	} else {
 		t := reflect.New(field.Type()).Interface()
-		json.Unmarshal([]byte(p), &t)
+
+		if err := json.Unmarshal([]byte(p), &t); err != nil {
+			if err := json.Unmarshal([]byte(`"`+p+`"`), &t); err != nil {
+				return err
+			}
+		}
+
 		field.Set(reflect.Indirect(reflect.ValueOf(t)))
 	}
+
+	return nil
 }
 
 type DecoderOpts func(e *Decoder)
