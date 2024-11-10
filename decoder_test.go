@@ -1,9 +1,11 @@
 package delimited_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Dan6erbond/delimited"
 )
@@ -50,7 +52,9 @@ func TestUnmarshalPointer(t *testing.T) {
 		D *string
 	}
 
-	delimited.Unmarshal([]byte(`1,0,3,4`), &val)
+	if err := delimited.Unmarshal([]byte(`1,0,3,4`), &val); err != nil {
+		t.Error(err)
+	}
 
 	if val.A != 1 {
 		t.Errorf("expected %d got %d", 1, val.A)
@@ -85,7 +89,9 @@ func TestUnmarshalIndex(t *testing.T) {
 		D *string `index:"2"`
 	}
 
-	delimited.Unmarshal([]byte(`1,0,3,4`), &val)
+	if err := delimited.Unmarshal([]byte(`1,0,3,4`), &val); err != nil {
+		t.Error(err)
+	}
 
 	if val.A != 1 {
 		t.Errorf("expected %d got %d", 1, val.A)
@@ -120,7 +126,9 @@ func TestUnmarshalIgnore(t *testing.T) {
 		D *string
 	}
 
-	delimited.Unmarshal([]byte(`1,3,4`), &val)
+	if err := delimited.Unmarshal([]byte(`1,3,4`), &val); err != nil {
+		t.Error(err)
+	}
 
 	if val.A != 1 {
 		t.Errorf("expected %d got %d", 1, val.A)
@@ -151,7 +159,9 @@ func TestUnmarshalUnderflow(t *testing.T) {
 		D *string
 	}
 
-	delimited.Unmarshal([]byte(`1,3`), &val)
+	if err := delimited.Unmarshal([]byte(`1,3`), &val); err != nil {
+		t.Error(err)
+	}
 
 	if val.A != 1 {
 		t.Errorf("expected %d got %d", 1, val.A)
@@ -178,7 +188,9 @@ func TestUnmarshalOverflow(t *testing.T) {
 		D *string
 	}
 
-	delimited.Unmarshal([]byte(`1,3,4,4`), &val)
+	if err := delimited.Unmarshal([]byte(`1,3,4,4`), &val); err != nil {
+		t.Error(err)
+	}
 
 	if val.A != 1 {
 		t.Errorf("expected %d got %d", 1, val.A)
@@ -199,4 +211,21 @@ func TestUnmarshalOverflow(t *testing.T) {
 	if *val.D != "4" {
 		t.Errorf("expected %s got %s", "4", *val.D)
 	}
+}
+
+func TestDecodeTimeTime(t *testing.T) {
+	var val struct {
+		A time.Time
+	}
+
+	if err := delimited.Unmarshal([]byte(`2017-03-08T14:59:06Z`), &val); err != nil {
+		t.Error(err)
+	}
+
+	var ti time.Time
+	err := json.Unmarshal([]byte(`2017-03-08T14:59:06Z`), &ti)
+	fmt.Println(err)
+	fmt.Println(ti)
+
+	fmt.Println(val.A)
 }
